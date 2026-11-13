@@ -1,1 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chess</title>
 
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard.js/1.0.0/css/chessboard-1.0.0.min.css">
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #17191d;
+  color: white;
+  font-family: Arial, sans-serif;
+  min-height: 100vh;
+}
+
+header {
+  padding: 22px 30px;
+  border-bottom: 1px solid #333;
+  font-size: 25px;
+  font-weight: bold;
+}
+
+main {
+  max-width: 1100px;
+  margin: 45px auto;
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  flex-wrap: wrap;
+}
+
+.board-area {
+  width: min(70vw, 560px);
+  min-width: 280px;
+}
+
+#board {
+  width: 100%;
+  aspect-ratio: 1;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  border: 4px solid #252a31;
+}
+
+.square {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(25px, 6vw, 55px);
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+
+.light { background: #eeeed2; }
+.dark { background: #769656; }
+
+.selected {
+  background: #f6f669 !important;
+}
+
+.target::after {
+  content: "";
+  width: 25%;
+  height: 25%;
+  border-radius: 50%;
+  background: #3338;
+  position: absolute;
+}
+
+.panel {
+  background: #22262d;
+  padding: 22px;
+  border-radius: 12px;
+  width: 280px;
+  height: fit-content;
+}
+
+.panel h2 {
+  margin-top: 0;
+}
+
+#status {
+  background: #303640;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+}
+
+#moves {
+  min-height: 100px;
+  max-height: 250px;
+  overflow-y: auto;
+  line-height: 2;
+  color: #ccc;
+}
+
+button {
+  background: #769656;
+  border: none;
+  color: white;
+  padding: 11px 15px;
+  border-radius: 7px;
+  cursor: pointer;
+  margin: 5px 3px 0 0;
+  font-weight: bold;
+}
+
+button:hover {
+  background: #8eae69;
+}
+
+footer {
+  text-align: center;
+  color: #777;
+  padding: 20px;
+}
+</style>
+</head>
+
+<body>
+
+<header>♟ CHESS</header>
+
+<main>
+  <div class="board-area">
+    <div id="board"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Game</h2>
+    <div id="status">White to move</div>
+
+    <h3>Move History</h3>
+    <div id="moves">No moves yet</div>
+
+    <button onclick="undo()">↩ Undo</button>
+    <button onclick="restart()">↻ Restart</button>
+  </div>
+</main>
+
+<footer>Chess · Single Player</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+
+<script>
+const game = new Chess();
+
+const pieces = {
+  wk:"♔", wq:"♕", wr:"♖", wb:"♗", wn:"♘", wp:"♙",
+  bk:"♚", bq:"♛", br:"♜", bb:"♝", bn:"♞", bp:"♟"
+};
+
+let selected = null;
+let targets = [];
+
+function render() {
+  const board = document.getElementById("board");
+  board.innerHTML = "";
+
+  const position = game.board();
+
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const square = position[r][c];
+      const file = "abcdefgh"[c];
+      const rank = 8-r;
+      const name = file + rank;
+
+      const div = document.createElement("div");
+      div.className = "square " +
+        ((r+c)%2 === 0 ? "light" : "dark");
+
+      if (selected === name) div.classList.add("selected");
+      if (targets.includes(name)) div.classList.add("target");
+
+      if (square) {
+        const color = square.color === "w" ? "w" : "b";
+        div.textContent = pieces[color + square.type];
+      }
+
+      div.onclick = () => clickSquare(name);
+      board.appendChild(div);
+    }
+  }
+
+  updateInfo();
+}
+
+function clickSquare(name) {
+  if (game.game_over()) return;
+
+  if (selected && targets.includes(name)) {
+    try {
+      const piece = game.get(selected);
+      const move = game.move({
+        from: selected,
+        to: name,
+        promotion: "q"
+      });
+
+      if (move) {
+        selected = null;
+        targets = [];
+        render();
+        return;
+      }
+    } catch(e) {}
+  }
+
+  const piece = game.get(name);
+
+  if (piece && piece.color === game.turn()) {
+    selected = name;
+    targets = game.moves({
+      square: name,
+      verbose: true
+    }).map(m => m.to);
+  } else {
+    selected = null;
+    targets = [];
+  }
+
+  render();
+}
+
+function updateInfo() {
+  let status = "White to move";
+
+  if (game.turn() === "b") status = "Black to move";
+  if (game.in_check()) status += " · Check";
+  if (game.in_checkmate()) status = "Checkmate!";
+  if (game.in_stalemate()) status = "Draw · Stalemate";
+  if (game.in_draw()) status = "Draw";
+  if (game.in_threefold_repetition()) status = "Draw · Repetition";
+
+  document.getElementById("status").textContent = status;
+
+  const history = game.history();
+  const moves = [];
+
+  for (let i = 0; i < history.length; i += 2) {
+    moves.push(
+      `<div>${Math.floor(i/2)+1}. ${history[i]} ${history[i+1] || ""}</div>`
+    );
+  }
+
+  document.getElementById("moves").innerHTML =
+    moves.length ? moves.join("") : "No moves yet";
+}
+
+function undo() {
+  game.undo();
+  selected = null;
+  targets = [];
+  render();
+}
+
+function restart() {
+  game.reset();
+  selected = null;
+  targets = [];
+  render();
+}
+
+render();
+</script>
+
+</body>
+</html>
