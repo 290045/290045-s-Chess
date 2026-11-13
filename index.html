@@ -8,12 +8,14 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
 
 <style>
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
 body {
   margin: 0;
   min-height: 100vh;
-  background: #171717;
+  background: #202020;
   color: white;
   font-family: Arial, sans-serif;
   display: flex;
@@ -24,7 +26,7 @@ body {
 
 .container {
   width: 100%;
-  max-width: 850px;
+  max-width: 900px;
   display: flex;
   gap: 25px;
   align-items: flex-start;
@@ -33,13 +35,14 @@ body {
 }
 
 #board {
-  width: min(80vw, 560px);
+  width: min(80vw, 600px);
   aspect-ratio: 1;
   display: grid;
   grid-template-columns: repeat(8, 1fr);
   grid-template-rows: repeat(8, 1fr);
   border: 5px solid #292929;
   overflow: hidden;
+  border-radius: 4px;
 }
 
 .square {
@@ -53,20 +56,27 @@ body {
 
 .light { background: #eeeed2; }
 .dark { background: #769656; }
-.square.selected { background: #baca44; }
+
+.square.selected {
+  background: #baca44;
+}
 
 .piece {
-  width: 86%;
-  height: 86%;
+  width: 92%;
+  height: 92%;
   position: relative;
   z-index: 1;
   pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .piece svg {
   width: 100%;
   height: 100%;
   display: block;
+  overflow: visible;
 }
 
 .square.legal::after {
@@ -88,12 +98,15 @@ body {
 
 .panel {
   width: 230px;
-  background: #242424;
+  background: #303030;
   padding: 20px;
   border-radius: 10px;
 }
 
-h1 { margin-top: 0; }
+h1 {
+  margin-top: 0;
+  font-size: 26px;
+}
 
 button {
   width: 100%;
@@ -107,7 +120,9 @@ button {
   cursor: pointer;
 }
 
-button:hover { background: #668545; }
+button:hover {
+  background: #668545;
+}
 
 #status {
   margin: 15px 0;
@@ -127,6 +142,7 @@ button:hover { background: #668545; }
     flex-direction: column;
     align-items: center;
   }
+
   .panel {
     width: min(100%, 560px);
   }
@@ -135,14 +151,17 @@ button:hover { background: #668545; }
 </head>
 
 <body>
+
 <div class="container">
   <div id="board"></div>
 
   <div class="panel">
     <h1>Chess</h1>
     <div id="status">White to move</div>
+
     <button onclick="undo()">Undo Move</button>
     <button onclick="restart()">Restart Game</button>
+
     <h3>Move History</h3>
     <div id="history"></div>
   </div>
@@ -154,56 +173,150 @@ const game = new Chess();
 let selectedSquare = null;
 let legalMoves = [];
 
+// Original custom chess-piece silhouettes.
 function pieceSVG(piece) {
   const white = piece.color === "w";
   const fill = white ? "#ffffff" : "#171717";
-  const stroke = white ? "#777777" : "#050505";
+  const outline = white ? "#777777" : "#050505";
 
   const shapes = {
+
+    // KING
     k: `
-      <path d="M46 8 H54 V20 H66 V28 H54 V36 H46 V28 H34 V20 H46 Z"/>
-      <path d="M30 40 Q30 32 50 32 Q70 32 70 40 L76 78 H24 Z"/>
-      <path d="M19 79 H81 V88 H19 Z"/>
-      <path d="M14 89 H86 V96 H14 Z"/>
+      <path d="
+        M44 7 H56 V19 H68 V29 H56 V38
+        H44 V29 H32 V19 H44 Z
+      "/>
+      <path d="
+        M36 40
+        Q27 43 29 55
+        L34 75 H66 L71 55
+        Q73 43 64 40 Z
+      "/>
+      <path d="M27 76 H73 V85 H27 Z"/>
+      <path d="M18 87 H82 V96 H18 Z"/>
     `,
+
+    // QUEEN
     q: `
-      <circle cx="20" cy="22" r="8"/>
-      <circle cx="40" cy="13" r="8"/>
-      <circle cx="60" cy="13" r="8"/>
-      <circle cx="80" cy="22" r="8"/>
-      <path d="M20 30 L30 65 H70 L80 30 L62 48 L60 28 L50 47 L40 28 L38 48 Z"/>
-      <path d="M26 67 H74 L80 83 H20 Z"/>
-      <path d="M14 84 H86 V96 H14 Z"/>
+      <circle cx="19" cy="20" r="8"/>
+      <circle cx="40" cy="12" r="8"/>
+      <circle cx="60" cy="12" r="8"/>
+      <circle cx="81" cy="20" r="8"/>
+      <path d="
+        M18 29
+        L30 65 H70
+        L82 29 L64 45
+        L60 27 L50 46
+        L40 27 L36 45 Z
+      "/>
+      <path d="M27 67 H73 L79 82 H21 Z"/>
+      <path d="M15 86 H85 V96 H15 Z"/>
     `,
+
+    // ROOK
     r: `
-      <path d="M17 14 H34 V29 H42 V14 H58 V29 H66 V14 H83 V39 H75 L70 78 H30 L25 39 H17 Z"/>
-      <path d="M24 79 H76 V88 H24 Z"/>
-      <path d="M16 89 H84 V96 H16 Z"/>
+      <path d="
+        M16 12 H34 V27 H42 V12
+        H58 V27 H66 V12 H84
+        V39 H75 L70 76 H30
+        L25 39 H16 Z
+      "/>
+      <path d="M25 78 H75 V86 H25 Z"/>
+      <path d="M16 88 H84 V96 H16 Z"/>
     `,
+
+    // BISHOP
     b: `
-      <path d="M50 8 C32 8 27 24 37 37 C22 46 26 65 35 72 H65 C74 65 78 46 63 37 C73 24 68 8 50 8 Z"/>
-      <path d="M39 17 L60 43" fill="none" stroke="${stroke}" stroke-width="5"/>
-      <path d="M32 74 H68 L76 85 H24 Z"/>
-      <path d="M16 89 H84 V96 H16 Z"/>
+      <path d="
+        M50 8
+        C35 8 28 22 34 35
+        C20 48 27 65 35 73
+        H65
+        C73 65 80 48 66 35
+        C72 22 65 8 50 8 Z
+      "/>
+      <path d="M42 17 L59 42"
+        fill="none"
+        stroke="${outline}"
+        stroke-width="5"
+        stroke-linecap="round"/>
+      <path d="M30 75 H70 L78 85 H22 Z"/>
+      <path d="M15 88 H85 V96 H15 Z"/>
     `,
+
+    // KNIGHT
     n: `
-      <path d="M22 79 L27 58 C20 45 24 28 40 20 L49 9 L54 24 L70 19 L82 35 L72 46 L68 70 L78 79 Z"/>
-      <path d="M45 30 L58 34 L51 40 Z" fill="${stroke}" stroke="none"/>
-      <path d="M34 77 H78 V88 H34 Z"/>
-      <path d="M20 89 H84 V96 H20 Z"/>
+      <path d="
+        M19 85
+        L22 73
+        Q28 67 30 58
+        L25 47
+        Q19 33 31 23
+        L45 13
+        L50 5
+        L58 19
+        L70 22
+        L83 38
+        L74 49
+        L64 49
+        L68 61
+        L77 74
+        L83 85
+        Z
+      "/>
+
+      <path d="
+        M31 25
+        L38 16
+        L43 28
+        L34 37
+        Z
+      " />
+
+      <path d="
+        M57 31
+        Q65 26 72 33
+        Q66 40 57 36
+        Z
+        " fill="${outline}" stroke="none"/>
+
+      <path d="
+        M30 50
+        Q41 55 53 48
+        L62 55
+        L57 69
+        H35
+        Z
+      "/>
+
+      <path d="M25 76 H77 V86 H25 Z"/>
+      <path d="M15 88 H85 V96 H15 Z"/>
     `,
+
+    // PAWN
     p: `
-      <circle cx="50" cy="25" r="17"/>
-      <path d="M38 43 H62 L70 75 H30 Z"/>
-      <path d="M25 77 H75 V87 H25 Z"/>
-      <path d="M17 89 H83 V96 H17 Z"/>
+      <circle cx="50" cy="24" r="17"/>
+      <path d="
+        M39 42
+        Q34 48 34 56
+        L29 75 H71
+        L66 56
+        Q66 48 61 42 Z
+      "/>
+      <path d="M26 77 H74 V86 H26 Z"/>
+      <path d="M16 88 H84 V96 H16 Z"/>
     `
   };
 
   return `
-    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-      <g fill="${fill}" stroke="${stroke}" stroke-width="2.5"
-         stroke-linejoin="round" stroke-linecap="round">
+    <svg viewBox="0 0 100 100"
+         xmlns="http://www.w3.org/2000/svg">
+      <g fill="${fill}"
+         stroke="${outline}"
+         stroke-width="2.5"
+         stroke-linejoin="round"
+         stroke-linecap="round">
         ${shapes[piece.type]}
       </g>
     </svg>
@@ -216,7 +329,7 @@ function render() {
 
   const board = game.board();
 
-  // White's pieces stay at the bottom.
+  // White stays at the bottom, Black at the top.
   for (let r = 0; r < 8; r++) {
     for (let c = 0; c < 8; c++) {
       const file = "abcdefgh"[c];
@@ -224,6 +337,7 @@ function render() {
       const squareName = file + rank;
 
       const square = document.createElement("div");
+
       square.className = "square " +
         ((r + c) % 2 === 0 ? "light" : "dark");
 
@@ -232,6 +346,7 @@ function render() {
       }
 
       const move = legalMoves.find(m => m.to === squareName);
+
       if (move) {
         square.classList.add(
           game.get(squareName) ? "capture" : "legal"
@@ -247,7 +362,10 @@ function render() {
         square.appendChild(holder);
       }
 
-      square.addEventListener("click", () => clickSquare(squareName));
+      square.addEventListener("click", () => {
+        clickSquare(squareName);
+      });
+
       boardElement.appendChild(square);
     }
   }
@@ -277,6 +395,7 @@ function clickSquare(square) {
 
   if (piece && piece.color === game.turn()) {
     selectedSquare = square;
+
     legalMoves = game.moves({
       square: square,
       verbose: true
@@ -299,10 +418,12 @@ function updateInfo() {
     status.textContent = "Draw!";
   } else if (game.in_check()) {
     status.textContent =
-      (game.turn() === "w" ? "White" : "Black") + " is in check!";
+      (game.turn() === "w" ? "White" : "Black") +
+      " is in check!";
   } else {
     status.textContent =
-      (game.turn() === "w" ? "White" : "Black") + " to move";
+      (game.turn() === "w" ? "White" : "Black") +
+      " to move";
   }
 
   const moves = game.history();
@@ -310,9 +431,12 @@ function updateInfo() {
 
   for (let i = 0; i < moves.length; i += 2) {
     const line = document.createElement("div");
+
     line.textContent =
       (Math.floor(i / 2) + 1) + ". " +
-      moves[i] + (moves[i + 1] ? " " + moves[i + 1] : "");
+      moves[i] +
+      (moves[i + 1] ? " " + moves[i + 1] : "");
+
     history.appendChild(line);
   }
 }
@@ -333,5 +457,6 @@ function restart() {
 
 render();
 </script>
+
 </body>
 </html>
