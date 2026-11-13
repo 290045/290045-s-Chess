@@ -173,11 +173,11 @@ const game = new Chess();
 let selectedSquare = null;
 let legalMoves = [];
 
-// Original custom chess-piece silhouettes.
 function pieceSVG(piece) {
   const white = piece.color === "w";
+
   const fill = white ? "#ffffff" : "#171717";
-  const outline = white ? "#777777" : "#050505";
+  const outline = white ? "#777777" : "#555555";
 
   const shapes = {
 
@@ -272,14 +272,14 @@ function pieceSVG(piece) {
         L43 28
         L34 37
         Z
-      " />
+      "/>
 
       <path d="
         M57 31
         Q65 26 72 33
         Q66 40 57 36
         Z
-        " fill="${outline}" stroke="none"/>
+      " fill="${outline}" stroke="none"/>
 
       <path d="
         M30 50
@@ -329,7 +329,7 @@ function render() {
 
   const board = game.board();
 
-  // White stays at the bottom, Black at the top.
+  // White at bottom, Black at top.
   for (let r = 0; r < 8; r++) {
     for (let c = 0; c < 8; c++) {
       const file = "abcdefgh"[c];
