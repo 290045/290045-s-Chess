@@ -15,58 +15,45 @@
 
 body {
   margin: 0;
-  background: #17191d;
+  min-height: 100vh;
+  background: #171717;
   color: white;
   font-family: Arial, sans-serif;
-  min-height: 100vh;
-}
-
-header {
-  padding: 22px 30px;
-  border-bottom: 1px solid #333;
-  font-size: 25px;
-  font-weight: bold;
-}
-
-main {
-  max-width: 1100px;
-  margin: 45px auto;
-  padding: 20px;
   display: flex;
   justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.container {
+  width: 100%;
+  max-width: 850px;
+  display: flex;
+  gap: 25px;
   align-items: flex-start;
-  gap: 30px;
+  justify-content: center;
   flex-wrap: wrap;
 }
 
-.board-area {
-  width: min(90vw, 560px);
-  flex-shrink: 0;
-}
-
 #board {
-  width: 100%;
+  width: min( min(80vw, 560px), 560px);
   aspect-ratio: 1 / 1;
   display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr));
-  grid-template-rows: repeat(8, minmax(0, 1fr));
-  border: 4px solid #252a31;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+  border: 5px solid #292929;
+  border-radius: 4px;
   overflow: hidden;
 }
 
 .square {
-  width: 100%;
-  height: 100%;
-  min-width: 0;
-  min-height: 0;
   display: flex;
-  align-items: center;
   justify-content: center;
-  font-size: clamp(20px, 6vw, 55px);
+  align-items: center;
+  position: relative;
+  aspect-ratio: 1 / 1;
   cursor: pointer;
   user-select: none;
-  position: relative;
-  line-height: 1;
 }
 
 .light {
@@ -77,88 +64,95 @@ main {
   background: #769656;
 }
 
-.selected {
-  background: #f6f669 !important;
+.square.selected {
+  background: #baca44;
 }
 
-.target::after {
+.square.legal::after {
   content: "";
+  position: absolute;
   width: 25%;
   height: 25%;
   border-radius: 50%;
-  background: #3338;
-  position: absolute;
-  pointer-events: none;
+  background: rgba(0, 0, 0, 0.22);
 }
 
-.target:has(.piece)::after {
-  width: 85%;
-  height: 85%;
-  background: transparent;
-  border: 5px solid #3338;
+.square.capture::after {
+  content: "";
+  position: absolute;
+  inset: 5%;
+  border: 5px solid rgba(0, 0, 0, 0.22);
+  border-radius: 50%;
+}
+
+.piece {
+  position: relative;
+  z-index: 1;
+  font-family: "DejaVu Sans", "Segoe UI Symbol", sans-serif;
+  font-size: clamp(30px, 7vw, 58px);
+  line-height: 1;
+  font-weight: normal;
+}
+
+.piece.white {
+  color: #fff;
+  text-shadow: 0 1px 2px #555;
+}
+
+.piece.black {
+  color: #111;
+  text-shadow: 0 1px 1px #777;
 }
 
 .panel {
-  background: #22262d;
-  padding: 22px;
-  border-radius: 12px;
-  width: 280px;
-  height: fit-content;
+  width: 230px;
+  background: #242424;
+  padding: 20px;
+  border-radius: 10px;
 }
 
-.panel h2 {
+h1 {
   margin-top: 0;
-}
-
-#status {
-  background: #303640;
-  padding: 12px;
-  border-radius: 8px;
-  margin-bottom: 15px;
-}
-
-#moves {
-  min-height: 100px;
-  max-height: 250px;
-  overflow-y: auto;
-  line-height: 2;
-  color: #ccc;
+  font-size: 26px;
 }
 
 button {
-  background: #769656;
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
   border: none;
+  border-radius: 6px;
+  background: #769656;
   color: white;
-  padding: 11px 15px;
-  border-radius: 7px;
+  font-size: 15px;
   cursor: pointer;
-  margin: 5px 3px 0 0;
-  font-weight: bold;
 }
 
 button:hover {
-  background: #8eae69;
+  background: #668545;
 }
 
-footer {
-  text-align: center;
-  color: #777;
-  padding: 20px;
+#status {
+  margin: 15px 0;
+  color: #ddd;
 }
 
-@media (max-width: 700px) {
-  main {
-    margin: 15px auto;
-    padding: 10px;
-    gap: 20px;
-  }
+#history {
+  max-height: 220px;
+  overflow-y: auto;
+  font-size: 14px;
+  line-height: 1.8;
+  color: #ddd;
+}
 
-  .board-area {
-    width: min(94vw, 560px);
+@media (max-width: 650px) {
+  .container {
+    flex-direction: column;
+    align-items: center;
   }
 
   .panel {
-    width: min(94vw, 560px);
+    width: min(100%, 560px);
   }
 }
 </style>
@@ -166,170 +160,154 @@ footer {
 
 <body>
 
-<header>♟ CHESS</header>
-
-<main>
-
-  <div class="board-area">
-    <div id="board"></div>
-  </div>
+<div class="container">
+  <div id="board"></div>
 
   <div class="panel">
-    <h2>Game</h2>
-
+    <h1>Chess</h1>
     <div id="status">White to move</div>
 
+    <button onclick="undo()">Undo Move</button>
+    <button onclick="restart()">Restart Game</button>
+
     <h3>Move History</h3>
-    <div id="moves">No moves yet</div>
-
-    <button onclick="undo()">↩ Undo</button>
-    <button onclick="restart()">↻ Restart</button>
+    <div id="history"></div>
   </div>
-
-</main>
-
-<footer>Chess · Single Player</footer>
+</div>
 
 <script>
 const game = new Chess();
 
+let selectedSquare = null;
+let legalMoves = [];
+
 const pieces = {
-  wk:"♔", wq:"♕", wr:"♖", wb:"♗", wn:"♘", wp:"♙",
-  bk:"♚", bq:"♛", br:"♜", bb:"♝", bn:"♞", bp:"♟"
+  wk: "♔", wq: "♕", wr: "♖",
+  wb: "♗", wn: "♘", wp: "♙",
+  bk: "♚", bq: "♛", br: "♜",
+  bb: "♝", bn: "♞", bp: "♟"
 };
 
-let selected = null;
-let targets = [];
-
 function render() {
-  const board = document.getElementById("board");
-  board.innerHTML = "";
+  const boardElement = document.getElementById("board");
+  boardElement.innerHTML = "";
 
-  const position = game.board();
+  const board = game.board();
 
+  // Rank 8 is at the top; rank 1 (White's side) is at the bottom.
   for (let r = 0; r < 8; r++) {
     for (let c = 0; c < 8; c++) {
-
-      const square = position[r][c];
+      const square = document.createElement("div");
       const file = "abcdefgh"[c];
       const rank = 8 - r;
-      const name = file + rank;
+      const squareName = file + rank;
 
-      const div = document.createElement("div");
-
-      div.className = "square " +
+      square.className = "square " +
         ((r + c) % 2 === 0 ? "light" : "dark");
 
-      if (selected === name) {
-        div.classList.add("selected");
+      if (selectedSquare === squareName) {
+        square.classList.add("selected");
       }
 
-      if (targets.includes(name)) {
-        div.classList.add("target");
+      const move = legalMoves.find(m => m.to === squareName);
+      if (move) {
+        square.classList.add(
+          game.get(squareName) ? "capture" : "legal"
+        );
       }
 
-      if (square) {
-        const color = square.color;
-        div.textContent = pieces[color + square.type];
-        div.style.lineHeight = "1";
+      const piece = board[r][c];
+
+      if (piece) {
+        const span = document.createElement("span");
+        span.className = "piece " +
+          (piece.color === "w" ? "white" : "black");
+
+        span.textContent = pieces[piece.color + piece.type];
+        square.appendChild(span);
       }
 
-      div.onclick = () => clickSquare(name);
-
-      board.appendChild(div);
+      square.addEventListener("click", () => clickSquare(squareName));
+      boardElement.appendChild(square);
     }
   }
 
   updateInfo();
 }
 
-function clickSquare(name) {
+function clickSquare(square) {
   if (game.game_over()) return;
 
-  if (selected && targets.includes(name)) {
+  const piece = game.get(square);
 
-    try {
-      const move = game.move({
-        from: selected,
-        to: name,
-        promotion: "q"
-      });
+  if (selectedSquare) {
+    const move = game.move({
+      from: selectedSquare,
+      to: square,
+      promotion: "q"
+    });
 
-      if (move) {
-        selected = null;
-        targets = [];
-        render();
-        return;
-      }
-    } catch(e) {}
+    if (move) {
+      selectedSquare = null;
+      legalMoves = [];
+      render();
+      return;
+    }
   }
 
-  const piece = game.get(name);
-
   if (piece && piece.color === game.turn()) {
-
-    selected = name;
-
-    targets = game.moves({
-      square: name,
+    selectedSquare = square;
+    legalMoves = game.moves({
+      square: square,
       verbose: true
-    }).map(m => m.to);
-
+    });
   } else {
-    selected = null;
-    targets = [];
+    selectedSquare = null;
+    legalMoves = [];
   }
 
   render();
 }
 
 function updateInfo() {
-  let status = game.turn() === "w"
-    ? "White to move"
-    : "Black to move";
-
-  if (game.in_check()) status += " · Check";
+  const status = document.getElementById("status");
+  const history = document.getElementById("history");
 
   if (game.in_checkmate()) {
-    status = "Checkmate!";
-  } else if (game.in_stalemate()) {
-    status = "Draw · Stalemate";
+    status.textContent = "Checkmate!";
   } else if (game.in_draw()) {
-    status = "Draw";
+    status.textContent = "Draw!";
+  } else if (game.in_check()) {
+    status.textContent =
+      (game.turn() === "w" ? "White" : "Black") + " is in check!";
+  } else {
+    status.textContent =
+      (game.turn() === "w" ? "White" : "Black") + " to move";
   }
 
-  document.getElementById("status").textContent = status;
+  const moves = game.history();
+  history.innerHTML = "";
 
-  const history = game.history();
-  const moves = [];
-
-  for (let i = 0; i < history.length; i += 2) {
-    moves.push(
-      `<div>${Math.floor(i / 2) + 1}. ${history[i]} ${history[i + 1] || ""}</div>`
-    );
+  for (let i = 0; i < moves.length; i += 2) {
+    const line = document.createElement("div");
+    line.textContent =
+      (Math.floor(i / 2) + 1) + ". " +
+      moves[i] + (moves[i + 1] ? " " + moves[i + 1] : "");
+    history.appendChild(line);
   }
-
-  document.getElementById("moves").innerHTML =
-    moves.length ? moves.join("") : "No moves yet";
 }
 
 function undo() {
-  if (game.history().length === 0) return;
-
   game.undo();
-
-  selected = null;
-  targets = [];
-
+  selectedSquare = null;
+  legalMoves = [];
   render();
 }
 
 function restart() {
   game.reset();
-
-  selected = null;
-  targets = [];
-
+  selectedSquare = null;
+  legalMoves = [];
   render();
 }
 
