@@ -5,13 +5,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Chess</title>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
 
 <style>
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
   margin: 0;
@@ -36,13 +33,12 @@ body {
 }
 
 #board {
-  width: min( min(80vw, 560px), 560px);
-  aspect-ratio: 1 / 1;
+  width: min(80vw, 560px);
+  aspect-ratio: 1;
   display: grid;
   grid-template-columns: repeat(8, 1fr);
   grid-template-rows: repeat(8, 1fr);
   border: 5px solid #292929;
-  border-radius: 4px;
   overflow: hidden;
 }
 
@@ -51,21 +47,26 @@ body {
   justify-content: center;
   align-items: center;
   position: relative;
-  aspect-ratio: 1 / 1;
   cursor: pointer;
   user-select: none;
 }
 
-.light {
-  background: #eeeed2;
+.light { background: #eeeed2; }
+.dark { background: #769656; }
+.square.selected { background: #baca44; }
+
+.piece {
+  width: 86%;
+  height: 86%;
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
 }
 
-.dark {
-  background: #769656;
-}
-
-.square.selected {
-  background: #baca44;
+.piece svg {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .square.legal::after {
@@ -74,34 +75,15 @@ body {
   width: 25%;
   height: 25%;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.22);
+  background: rgba(0,0,0,.22);
 }
 
 .square.capture::after {
   content: "";
   position: absolute;
   inset: 5%;
-  border: 5px solid rgba(0, 0, 0, 0.22);
+  border: 5px solid rgba(0,0,0,.22);
   border-radius: 50%;
-}
-
-.piece {
-  position: relative;
-  z-index: 1;
-  font-family: "DejaVu Sans", "Segoe UI Symbol", sans-serif;
-  font-size: clamp(30px, 7vw, 58px);
-  line-height: 1;
-  font-weight: normal;
-}
-
-.piece.white {
-  color: #fff;
-  text-shadow: 0 1px 2px #555;
-}
-
-.piece.black {
-  color: #111;
-  text-shadow: 0 1px 1px #777;
 }
 
 .panel {
@@ -111,10 +93,7 @@ body {
   border-radius: 10px;
 }
 
-h1 {
-  margin-top: 0;
-  font-size: 26px;
-}
+h1 { margin-top: 0; }
 
 button {
   width: 100%;
@@ -128,9 +107,7 @@ button {
   cursor: pointer;
 }
 
-button:hover {
-  background: #668545;
-}
+button:hover { background: #668545; }
 
 #status {
   margin: 15px 0;
@@ -150,7 +127,6 @@ button:hover {
     flex-direction: column;
     align-items: center;
   }
-
   .panel {
     width: min(100%, 560px);
   }
@@ -159,17 +135,14 @@ button:hover {
 </head>
 
 <body>
-
 <div class="container">
   <div id="board"></div>
 
   <div class="panel">
     <h1>Chess</h1>
     <div id="status">White to move</div>
-
     <button onclick="undo()">Undo Move</button>
     <button onclick="restart()">Restart Game</button>
-
     <h3>Move History</h3>
     <div id="history"></div>
   </div>
@@ -181,12 +154,61 @@ const game = new Chess();
 let selectedSquare = null;
 let legalMoves = [];
 
-const pieces = {
-  wk: "♔", wq: "♕", wr: "♖",
-  wb: "♗", wn: "♘", wp: "♙",
-  bk: "♚", bq: "♛", br: "♜",
-  bb: "♝", bn: "♞", bp: "♟"
-};
+function pieceSVG(piece) {
+  const white = piece.color === "w";
+  const fill = white ? "#ffffff" : "#171717";
+  const stroke = white ? "#777777" : "#050505";
+
+  const shapes = {
+    k: `
+      <path d="M46 8 H54 V20 H66 V28 H54 V36 H46 V28 H34 V20 H46 Z"/>
+      <path d="M30 40 Q30 32 50 32 Q70 32 70 40 L76 78 H24 Z"/>
+      <path d="M19 79 H81 V88 H19 Z"/>
+      <path d="M14 89 H86 V96 H14 Z"/>
+    `,
+    q: `
+      <circle cx="20" cy="22" r="8"/>
+      <circle cx="40" cy="13" r="8"/>
+      <circle cx="60" cy="13" r="8"/>
+      <circle cx="80" cy="22" r="8"/>
+      <path d="M20 30 L30 65 H70 L80 30 L62 48 L60 28 L50 47 L40 28 L38 48 Z"/>
+      <path d="M26 67 H74 L80 83 H20 Z"/>
+      <path d="M14 84 H86 V96 H14 Z"/>
+    `,
+    r: `
+      <path d="M17 14 H34 V29 H42 V14 H58 V29 H66 V14 H83 V39 H75 L70 78 H30 L25 39 H17 Z"/>
+      <path d="M24 79 H76 V88 H24 Z"/>
+      <path d="M16 89 H84 V96 H16 Z"/>
+    `,
+    b: `
+      <path d="M50 8 C32 8 27 24 37 37 C22 46 26 65 35 72 H65 C74 65 78 46 63 37 C73 24 68 8 50 8 Z"/>
+      <path d="M39 17 L60 43" fill="none" stroke="${stroke}" stroke-width="5"/>
+      <path d="M32 74 H68 L76 85 H24 Z"/>
+      <path d="M16 89 H84 V96 H16 Z"/>
+    `,
+    n: `
+      <path d="M22 79 L27 58 C20 45 24 28 40 20 L49 9 L54 24 L70 19 L82 35 L72 46 L68 70 L78 79 Z"/>
+      <path d="M45 30 L58 34 L51 40 Z" fill="${stroke}" stroke="none"/>
+      <path d="M34 77 H78 V88 H34 Z"/>
+      <path d="M20 89 H84 V96 H20 Z"/>
+    `,
+    p: `
+      <circle cx="50" cy="25" r="17"/>
+      <path d="M38 43 H62 L70 75 H30 Z"/>
+      <path d="M25 77 H75 V87 H25 Z"/>
+      <path d="M17 89 H83 V96 H17 Z"/>
+    `
+  };
+
+  return `
+    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <g fill="${fill}" stroke="${stroke}" stroke-width="2.5"
+         stroke-linejoin="round" stroke-linecap="round">
+        ${shapes[piece.type]}
+      </g>
+    </svg>
+  `;
+}
 
 function render() {
   const boardElement = document.getElementById("board");
@@ -194,14 +216,14 @@ function render() {
 
   const board = game.board();
 
-  // Rank 8 is at the top; rank 1 (White's side) is at the bottom.
+  // White's pieces stay at the bottom.
   for (let r = 0; r < 8; r++) {
     for (let c = 0; c < 8; c++) {
-      const square = document.createElement("div");
       const file = "abcdefgh"[c];
       const rank = 8 - r;
       const squareName = file + rank;
 
+      const square = document.createElement("div");
       square.className = "square " +
         ((r + c) % 2 === 0 ? "light" : "dark");
 
@@ -219,12 +241,10 @@ function render() {
       const piece = board[r][c];
 
       if (piece) {
-        const span = document.createElement("span");
-        span.className = "piece " +
-          (piece.color === "w" ? "white" : "black");
-
-        span.textContent = pieces[piece.color + piece.type];
-        square.appendChild(span);
+        const holder = document.createElement("div");
+        holder.className = "piece";
+        holder.innerHTML = pieceSVG(piece);
+        square.appendChild(holder);
       }
 
       square.addEventListener("click", () => clickSquare(squareName));
@@ -313,6 +333,5 @@ function restart() {
 
 render();
 </script>
-
 </body>
 </html>
